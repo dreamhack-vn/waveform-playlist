@@ -3124,6 +3124,7 @@ var WaveformPlaylist =
 	
 	    this.fadeType = 'logarithmic';
 	    this.masterGain = 1;
+	    this.speed = 1;
 	    this.annotations = [];
 	    this.durationFormat = 'hh:mm:ss.uuu';
 	    this.isAutomaticScroll = false;
@@ -3448,6 +3449,14 @@ var WaveformPlaylist =
 	          _this2.isScrolling = false;
 	        }, 200);
 	      });
+	
+	      ee.on('speedchange', function (speed) {
+	        _this2.setSpeed(speed);
+	      });
+	
+	      ee.on('loopnumber', function (number) {
+	        _this2.setLoop(number);
+	      });
 	    }
 	  }, {
 	    key: 'load',
@@ -3513,6 +3522,7 @@ var WaveformPlaylist =
 	          track.setState(_this3.getState());
 	          track.setStartTime(start);
 	          track.setPlayout(playout);
+	          track.setSpeed(1);
 	
 	          track.setGainLevel(gain);
 	          track.setStereoPanValue(stereoPan);
@@ -3647,6 +3657,30 @@ var WaveformPlaylist =
 	      });
 	    }
 	  }, {
+	    key: 'startRender',
+	    value: function startRender() {
+	      var _this5 = this;
+	
+	      if (this.isRendering) {
+	        return;
+	      }
+	
+	      this.offlineAudioContext = new OfflineAudioContext(2, 44100 * this.duration, 44100);
+	
+	      var currentTime = this.offlineAudioContext.currentTime;
+	
+	      this.tracks.forEach(function (track) {
+	        track.setOfflinePlayout(new _Playout2.default(_this5.offlineAudioContext, track.buffer));
+	        track.schedulePlay(currentTime, 0, 0, {
+	          shouldPlay: _this5.shouldTrackPlay(track),
+	          masterGain: 1,
+	          isOffline: true
+	        });
+	      });
+	
+	      return this.offlineAudioContext.startRendering();
+	    }
+	  }, {
 	    key: 'getTimeSelection',
 	    value: function getTimeSelection() {
 	      return this.timeSelection;
@@ -3678,12 +3712,12 @@ var WaveformPlaylist =
 	  }, {
 	    key: 'setZoom',
 	    value: function setZoom(zoom) {
-	      var _this5 = this;
+	      var _this6 = this;
 	
 	      this.samplesPerPixel = zoom;
 	      this.zoomIndex = this.zoomLevels.indexOf(zoom);
 	      this.tracks.forEach(function (track) {
-	        track.calculatePeaks(zoom, _this5.sampleRate);
+	        track.calculatePeaks(zoom, _this6.sampleRate);
 	      });
 	    }
 	  }, {
@@ -3741,10 +3775,10 @@ var WaveformPlaylist =
 	  }, {
 	    key: 'adjustTrackPlayout',
 	    value: function adjustTrackPlayout() {
-	      var _this6 = this;
+	      var _this7 = this;
 	
 	      this.tracks.forEach(function (track) {
-	        track.setShouldPlay(_this6.shouldTrackPlay(track));
+	        track.setShouldPlay(_this7.shouldTrackPlay(track));
 	      });
 	    }
 	  }, {
@@ -3817,7 +3851,7 @@ var WaveformPlaylist =
 	  }, {
 	    key: 'play',
 	    value: function play(startTime, endTime) {
-	      var _this7 = this;
+	      var _this8 = this;
 	
 	      clearTimeout(this.resetDrawTimer);
 	
@@ -3837,10 +3871,11 @@ var WaveformPlaylist =
 	      }
 	
 	      this.tracks.forEach(function (track) {
+	        track.setSpeed(_this8.speed);
 	        track.setState('cursor');
 	        playoutPromises.push(track.schedulePlay(currentTime, start, end, {
-	          shouldPlay: _this7.shouldTrackPlay(track),
-	          masterGain: _this7.masterGain
+	          shouldPlay: _this8.shouldTrackPlay(track),
+	          masterGain: _this8.masterGain
 	        }));
 	      });
 	
@@ -3875,14 +3910,14 @@ var WaveformPlaylist =
 	  }, {
 	    key: 'playbackReset',
 	    value: function playbackReset() {
-	      var _this8 = this;
+	      var _this9 = this;
 	
 	      this.lastSeeked = undefined;
 	      this.stopAnimation();
 	
 	      this.tracks.forEach(function (track) {
 	        track.scheduleStop();
-	        track.setState(_this8.getState());
+	        track.setState(_this9.getState());
 	      });
 	
 	      this.drawRequest();
@@ -3891,59 +3926,59 @@ var WaveformPlaylist =
 	  }, {
 	    key: 'rewind',
 	    value: function rewind() {
-	      var _this9 = this;
+	      var _this10 = this;
 	
 	      return this.stop().then(function () {
-	        _this9.scrollLeft = 0;
-	        _this9.ee.emit('select', 0, 0);
+	        _this10.scrollLeft = 0;
+	        _this10.ee.emit('select', 0, 0);
 	      });
 	    }
 	  }, {
 	    key: 'fastForward',
 	    value: function fastForward() {
-	      var _this10 = this;
+	      var _this11 = this;
 	
 	      return this.stop().then(function () {
-	        if (_this10.viewDuration < _this10.duration) {
-	          _this10.scrollLeft = _this10.duration - _this10.viewDuration;
+	        if (_this11.viewDuration < _this11.duration) {
+	          _this11.scrollLeft = _this11.duration - _this11.viewDuration;
 	        } else {
-	          _this10.scrollLeft = 0;
+	          _this11.scrollLeft = 0;
 	        }
 	
-	        _this10.ee.emit('select', _this10.duration, _this10.duration);
+	        _this11.ee.emit('select', _this11.duration, _this11.duration);
 	      });
 	    }
 	  }, {
 	    key: 'clear',
 	    value: function clear() {
-	      var _this11 = this;
+	      var _this12 = this;
 	
 	      return this.stop().then(function () {
-	        _this11.tracks = [];
-	        _this11.soloedTracks = [];
-	        _this11.mutedTracks = [];
-	        _this11.playoutPromises = [];
+	        _this12.tracks = [];
+	        _this12.soloedTracks = [];
+	        _this12.mutedTracks = [];
+	        _this12.playoutPromises = [];
 	
-	        _this11.cursor = 0;
-	        _this11.playbackSeconds = 0;
-	        _this11.duration = 0;
-	        _this11.scrollLeft = 0;
+	        _this12.cursor = 0;
+	        _this12.playbackSeconds = 0;
+	        _this12.duration = 0;
+	        _this12.scrollLeft = 0;
 	
-	        _this11.seek(0, 0, undefined);
+	        _this12.seek(0, 0, undefined);
 	      });
 	    }
 	  }, {
 	    key: 'record',
 	    value: function record() {
-	      var _this12 = this;
+	      var _this13 = this;
 	
 	      var playoutPromises = [];
 	      this.mediaRecorder.start(300);
 	
 	      this.tracks.forEach(function (track) {
 	        track.setState('none');
-	        playoutPromises.push(track.schedulePlay(_this12.ac.currentTime, 0, undefined, {
-	          shouldPlay: _this12.shouldTrackPlay(track)
+	        playoutPromises.push(track.schedulePlay(_this13.ac.currentTime, 0, undefined, {
+	          shouldPlay: _this13.shouldTrackPlay(track)
 	        }));
 	      });
 	
@@ -3952,11 +3987,11 @@ var WaveformPlaylist =
 	  }, {
 	    key: 'startAnimation',
 	    value: function startAnimation(startTime) {
-	      var _this13 = this;
+	      var _this14 = this;
 	
 	      this.lastDraw = this.ac.currentTime;
 	      this.animationRequest = window.requestAnimationFrame(function () {
-	        _this13.updateEditor(startTime);
+	        _this14.updateEditor(startTime);
 	      });
 	    }
 	  }, {
@@ -3991,47 +4026,53 @@ var WaveformPlaylist =
 	  }, {
 	    key: 'updateEditor',
 	    value: function updateEditor(cursor) {
-	      var _this14 = this;
+	      var _this15 = this;
 	
 	      var currentTime = this.ac.currentTime;
 	      var selection = this.getTimeSelection();
 	      var cursorPos = cursor || this.cursor;
 	      var elapsed = currentTime - this.lastDraw;
-	
+	      var playbackSeconds = cursorPos + elapsed * this.speed;
 	      if (this.isPlaying()) {
-	        var playbackSeconds = cursorPos + elapsed;
 	        this.ee.emit('timeupdate', playbackSeconds);
 	        this.animationRequest = window.requestAnimationFrame(function () {
-	          _this14.updateEditor(playbackSeconds);
+	          _this15.updateEditor(playbackSeconds);
 	        });
 	
 	        this.playbackSeconds = playbackSeconds;
 	        this.draw(this.render());
 	        this.lastDraw = currentTime;
 	      } else {
-	        if (cursorPos + elapsed >= (this.isSegmentSelection() ? selection.end : this.duration)) {
-	          this.ee.emit('finished');
+	        if (playbackSeconds >= (this.isSegmentSelection() ? selection.end : this.duration)) {
+	          if (this.loopNumber > 0) {
+	            this.loopNumber -= 1;
+	            this.restartPlayFrom(selection.start, selection.end);
+	          } else if (this.loopNumber === -1) {
+	            this.restartPlayFrom(selection.start, selection.end);
+	          } else {
+	            this.ee.emit('finished');
+	          }
 	        }
 	
 	        this.stopAnimation();
 	
 	        this.resetDrawTimer = setTimeout(function () {
-	          _this14.pausedAt = undefined;
-	          _this14.lastSeeked = undefined;
-	          _this14.setState(_this14.getState());
+	          _this15.pausedAt = undefined;
+	          _this15.lastSeeked = undefined;
+	          _this15.setState(_this15.getState());
 	
-	          _this14.playbackSeconds = 0;
-	          _this14.draw(_this14.render());
+	          _this15.playbackSeconds = 0;
+	          _this15.draw(_this15.render());
 	        }, 0);
 	      }
 	    }
 	  }, {
 	    key: 'drawRequest',
 	    value: function drawRequest() {
-	      var _this15 = this;
+	      var _this16 = this;
 	
 	      window.requestAnimationFrame(function () {
-	        _this15.draw(_this15.render());
+	        _this16.draw(_this16.render());
 	      });
 	    }
 	  }, {
@@ -4090,17 +4131,17 @@ var WaveformPlaylist =
 	  }, {
 	    key: 'renderTrackSection',
 	    value: function renderTrackSection() {
-	      var _this16 = this;
+	      var _this17 = this;
 	
 	      var trackElements = this.tracks.map(function (track) {
-	        var collapsed = _this16.collapsedTracks.indexOf(track) > -1;
-	        return track.render(_this16.getTrackRenderData({
-	          isActive: _this16.isActiveTrack(track),
-	          shouldPlay: _this16.shouldTrackPlay(track),
-	          soloed: _this16.soloedTracks.indexOf(track) > -1,
-	          muted: _this16.mutedTracks.indexOf(track) > -1,
+	        var collapsed = _this17.collapsedTracks.indexOf(track) > -1;
+	        return track.render(_this17.getTrackRenderData({
+	          isActive: _this17.isActiveTrack(track),
+	          shouldPlay: _this17.shouldTrackPlay(track),
+	          soloed: _this17.soloedTracks.indexOf(track) > -1,
+	          muted: _this17.mutedTracks.indexOf(track) > -1,
 	          collapsed: collapsed,
-	          height: collapsed ? _this16.collapsedWaveHeight : _this16.waveHeight
+	          height: collapsed ? _this17.collapsedWaveHeight : _this17.waveHeight
 	        }));
 	      });
 	
@@ -4109,9 +4150,9 @@ var WaveformPlaylist =
 	          style: 'overflow: auto;'
 	        },
 	        onscroll: function onscroll(e) {
-	          _this16.scrollLeft = (0, _conversions.pixelsToSeconds)(e.target.scrollLeft, _this16.samplesPerPixel, _this16.sampleRate);
+	          _this17.scrollLeft = (0, _conversions.pixelsToSeconds)(e.target.scrollLeft, _this17.samplesPerPixel, _this17.sampleRate);
 	
-	          _this16.ee.emit('scroll');
+	          _this17.ee.emit('scroll');
 	        },
 	        hook: new _ScrollHook2.default(this)
 	      }, trackElements);
@@ -4147,6 +4188,20 @@ var WaveformPlaylist =
 	      });
 	
 	      return info;
+	    }
+	  }, {
+	    key: 'setSpeed',
+	    value: function setSpeed(speed) {
+	      this.speed = speed >= 0.5 && speed <= 4 ? speed : 1;
+	      if (this.isPlaying()) {
+	        this.restartPlayFrom(this.playbackSeconds);
+	      }
+	      this.ee.emit('speedchanged', this.speed);
+	    }
+	  }, {
+	    key: 'setLoop',
+	    value: function setLoop(number) {
+	      this.loopNumber = number;
 	    }
 	  }]);
 
@@ -5682,6 +5737,7 @@ var WaveformPlaylist =
 	exports.pixelsToSamples = pixelsToSamples;
 	exports.pixelsToSeconds = pixelsToSeconds;
 	exports.secondsToPixels = secondsToPixels;
+	exports.cueFormatters = cueFormatters;
 	function samplesToSeconds(samples, sampleRate) {
 	  return samples / sampleRate;
 	}
@@ -5704,6 +5760,45 @@ var WaveformPlaylist =
 	
 	function secondsToPixels(seconds, resolution, sampleRate) {
 	  return Math.ceil(seconds * sampleRate / resolution);
+	}
+	
+	function cueFormatters(format) {
+	
+	  function clockFormat(seconds, decimals) {
+	    var hours, minutes, secs, result;
+	
+	    hours = parseInt(seconds / 3600, 10) % 24;
+	    minutes = parseInt(seconds / 60, 10) % 60;
+	    secs = seconds % 60;
+	    secs = secs.toFixed(decimals);
+	
+	    result = (hours < 10 ? "0" + hours : hours) + ":" + (minutes < 10 ? "0" + minutes : minutes) + ":" + (secs < 10 ? "0" + secs : secs);
+	
+	    return result;
+	  }
+	
+	  var formats = {
+	    "seconds": function seconds(_seconds) {
+	      return _seconds.toFixed(0);
+	    },
+	    "thousandths": function thousandths(seconds) {
+	      return seconds.toFixed(3);
+	    },
+	    "hh:mm:ss": function hhMmSs(seconds) {
+	      return clockFormat(seconds, 0);
+	    },
+	    "hh:mm:ss.u": function hhMmSsU(seconds) {
+	      return clockFormat(seconds, 1);
+	    },
+	    "hh:mm:ss.uu": function hhMmSsUu(seconds) {
+	      return clockFormat(seconds, 2);
+	    },
+	    "hh:mm:ss.uuu": function hhMmSsUuu(seconds) {
+	      return clockFormat(seconds, 3);
+	    }
+	  };
+	
+	  return formats[format];
 	}
 
 /***/ }),
@@ -6410,6 +6505,7 @@ var WaveformPlaylist =
 	  function _class() {
 	    _classCallCheck(this, _class);
 	
+	    this.format = 'hh:mm:ss';
 	    this.name = 'Untitled';
 	    this.customClass = undefined;
 	    this.waveOutlineColor = undefined;
@@ -6426,6 +6522,7 @@ var WaveformPlaylist =
 	    this.startTime = 0;
 	    this.endTime = 0;
 	    this.stereoPan = 0;
+	    this.speed = 1;
 	  }
 	
 	  _createClass(_class, [{
@@ -6587,6 +6684,11 @@ var WaveformPlaylist =
 	      this.peakData = data;
 	    }
 	  }, {
+	    key: 'setSpeed',
+	    value: function setSpeed(speed) {
+	      this.speed = speed;
+	    }
+	  }, {
 	    key: 'calculatePeaks',
 	    value: function calculatePeaks(samplesPerPixel, sampleRate) {
 	      var cueIn = (0, _conversions.secondsToSamples)(this.cueIn, sampleRate);
@@ -6664,6 +6766,8 @@ var WaveformPlaylist =
 	  }, {
 	    key: 'schedulePlay',
 	    value: function schedulePlay(now, startTime, endTime, config) {
+	      var _this = this;
+	
 	      var start = void 0;
 	      var duration = void 0;
 	      var when = now;
@@ -6691,7 +6795,7 @@ var WaveformPlaylist =
 	      if (this.startTime >= startTime) {
 	        start = 0;
 	        // schedule additional delay for this audio node.
-	        when += this.startTime - startTime;
+	        when += (this.startTime - startTime) / this.speed;
 	
 	        if (endTime) {
 	          segment -= this.startTime - startTime;
@@ -6722,11 +6826,11 @@ var WaveformPlaylist =
 	        // only apply fade if it's ahead of the cursor.
 	        if (relPos < fade.end) {
 	          if (relPos <= fade.start) {
-	            fadeStart = now + (fade.start - relPos);
-	            fadeDuration = fade.end - fade.start;
+	            fadeStart = now + (fade.start - relPos) / _this.speed;
+	            fadeDuration = (fade.end - fade.start) / _this.speed;
 	          } else if (relPos > fade.start && relPos < fade.end) {
-	            fadeStart = now - (relPos - fade.start);
-	            fadeDuration = fade.end - fade.start;
+	            fadeStart = now - (relPos - fade.start) / _this.speed;
+	            fadeDuration = (fade.end - fade.start) / _this.speed;
 	          }
 	
 	          switch (fade.type) {
@@ -6748,6 +6852,7 @@ var WaveformPlaylist =
 	        }
 	      });
 	
+	      playoutSystem.setSpeed(this.speed);
 	      playoutSystem.setVolumeGainLevel(this.gain);
 	      playoutSystem.setShouldPlay(options.shouldPlay);
 	      playoutSystem.setMasterGainLevel(options.masterGain);
@@ -6766,7 +6871,7 @@ var WaveformPlaylist =
 	  }, {
 	    key: 'renderOverlay',
 	    value: function renderOverlay(data) {
-	      var _this = this;
+	      var _this2 = this;
 	
 	      var channelPixels = (0, _conversions.secondsToPixels)(data.playlistLength, data.resolution, data.sampleRate);
 	
@@ -6784,7 +6889,7 @@ var WaveformPlaylist =
 	        var events = StateClass.getEvents();
 	
 	        events.forEach(function (event) {
-	          config['on' + event] = _this.stateObj[event].bind(_this.stateObj);
+	          config['on' + event] = _this2.stateObj[event].bind(_this2.stateObj);
 	        });
 	
 	        overlayClass = StateClass.getClass();
@@ -6795,7 +6900,7 @@ var WaveformPlaylist =
 	  }, {
 	    key: 'renderControls',
 	    value: function renderControls(data) {
-	      var _this2 = this;
+	      var _this3 = this;
 	
 	      var muteClass = data.muted ? '.active' : '';
 	      var soloClass = data.soloed ? '.active' : '';
@@ -6809,7 +6914,7 @@ var WaveformPlaylist =
 	          title: 'Remove track'
 	        },
 	        onclick: function onclick() {
-	          _this2.ee.emit('removeTrack', _this2);
+	          _this3.ee.emit('removeTrack', _this3);
 	        }
 	      }, [(0, _h2.default)('i.fas.fa-times')]);
 	
@@ -6821,7 +6926,7 @@ var WaveformPlaylist =
 	          title: isCollapsed ? 'Expand track' : 'Collapse track'
 	        },
 	        onclick: function onclick() {
-	          _this2.ee.emit('changeTrackView', _this2, {
+	          _this3.ee.emit('changeTrackView', _this3, {
 	            collapsed: !isCollapsed
 	          });
 	        }
@@ -6846,11 +6951,11 @@ var WaveformPlaylist =
 	              type: 'button'
 	            },
 	            onclick: function onclick() {
-	              _this2.ee.emit('mute', _this2);
+	              _this3.ee.emit('mute', _this3);
 	            }
 	          }, ['Mute']), (0, _h2.default)('button.btn.btn-outline-dark.btn-xs.btn-solo' + soloClass, {
 	            onclick: function onclick() {
-	              _this2.ee.emit('solo', _this2);
+	              _this3.ee.emit('solo', _this3);
 	            }
 	          }, ['Solo'])]));
 	        }
@@ -6866,7 +6971,7 @@ var WaveformPlaylist =
 	            },
 	            hook: new _VolumeSliderHook2.default(this.gain),
 	            oninput: function oninput(e) {
-	              _this2.ee.emit('volumechange', e.target.value, _this2);
+	              _this3.ee.emit('volumechange', e.target.value, _this3);
 	            }
 	          })]));
 	        }
@@ -6882,7 +6987,7 @@ var WaveformPlaylist =
 	            },
 	            hook: new _StereoPanSliderHook2.default(this.stereoPan),
 	            oninput: function oninput(e) {
-	              _this2.ee.emit('stereopan', e.target.value / 100, _this2);
+	              _this3.ee.emit('stereopan', e.target.value / 100, _this3);
 	            }
 	          })]));
 	        }
@@ -6897,7 +7002,7 @@ var WaveformPlaylist =
 	  }, {
 	    key: 'render',
 	    value: function render(data) {
-	      var _this3 = this;
+	      var _this4 = this;
 	
 	      var width = this.peaks.length;
 	      var playbackX = (0, _conversions.secondsToPixels)(data.playbackSeconds, data.resolution, data.sampleRate);
@@ -6929,11 +7034,11 @@ var WaveformPlaylist =
 	        })];
 	        var offset = 0;
 	        var totalWidth = width;
-	        var peaks = _this3.peaks.data[channelNum];
+	        var peaks = _this4.peaks.data[channelNum];
 	
 	        while (totalWidth > 0) {
 	          var currentWidth = Math.min(totalWidth, MAX_CANVAS_WIDTH);
-	          var canvasColor = _this3.waveOutlineColor ? _this3.waveOutlineColor : data.colors.waveOutlineColor;
+	          var canvasColor = _this4.waveOutlineColor ? _this4.waveOutlineColor : data.colors.waveOutlineColor;
 	
 	          channelChildren.push((0, _h2.default)('canvas', {
 	            attributes: {
@@ -6941,7 +7046,7 @@ var WaveformPlaylist =
 	              height: data.height * scale,
 	              style: 'float: left; position: relative; margin: 0; padding: 0; z-index: 3; width: ' + currentWidth + 'px; height: ' + data.height + 'px;'
 	            },
-	            hook: new _CanvasHook2.default(peaks, offset, _this3.peaks.bits, canvasColor, scale, data.height)
+	            hook: new _CanvasHook2.default(peaks, offset, _this4.peaks.bits, canvasColor, scale, data.height)
 	          }));
 	
 	          totalWidth -= currentWidth;
@@ -6949,8 +7054,8 @@ var WaveformPlaylist =
 	        }
 	
 	        // if there are fades, display them.
-	        if (_this3.fadeIn) {
-	          var fadeIn = _this3.fades[_this3.fadeIn];
+	        if (_this4.fadeIn) {
+	          var fadeIn = _this4.fades[_this4.fadeIn];
 	          var fadeWidth = (0, _conversions.secondsToPixels)(fadeIn.end - fadeIn.start, data.resolution, data.sampleRate);
 	
 	          channelChildren.push((0, _h2.default)('div.wp-fade.wp-fadein', {
@@ -6966,8 +7071,8 @@ var WaveformPlaylist =
 	          })]));
 	        }
 	
-	        if (_this3.fadeOut) {
-	          var fadeOut = _this3.fades[_this3.fadeOut];
+	        if (_this4.fadeOut) {
+	          var fadeOut = _this4.fades[_this4.fadeOut];
 	          var _fadeWidth = (0, _conversions.secondsToPixels)(fadeOut.end - fadeOut.start, data.resolution, data.sampleRate);
 	
 	          channelChildren.push((0, _h2.default)('div.wp-fade.wp-fadeout', {
@@ -7005,6 +7110,17 @@ var WaveformPlaylist =
 	            style: 'position: absolute; width: ' + cWidth + 'px; bottom: 0; top: 0; left: ' + cStartX + 'px; z-index: 4;'
 	          }
 	        }));
+	        if (cWidth > 1) {
+	          waveformChildren.push((0, _h2.default)('div.track-selection', {
+	            attributes: {
+	              style: 'position: absolute; width: ' + cWidth + 'px; bottom: 0; top: 0; left: ' + cStartX + 'px; z-index: 4;'
+	            }
+	          }));
+	          waveformChildren.push((0, _h2.default)('div.track-selection-hoverable', {
+	            attributes: {
+	              style: 'position: absolute; width: ' + cWidth + 'px; bottom: 0; top: 0; left: ' + cStartX + 'px; z-index: 4;'
+	            } }, (0, _h2.default)('span.tooltip', (0, _conversions.cueFormatters)(this.format)(data.timeSelection.start) + ' - ' + (0, _conversions.cueFormatters)(this.format)(data.timeSelection.end))));
+	        }
 	      }
 	
 	      var waveform = (0, _h2.default)('div.waveform', {
@@ -9640,6 +9756,7 @@ var WaveformPlaylist =
 	  }, {
 	    key: 'play',
 	    value: function play(when, start, duration) {
+	      this.source.playbackRate.value = this.speed;
 	      this.source.start(when, start, duration);
 	    }
 	  }, {
@@ -9650,6 +9767,11 @@ var WaveformPlaylist =
 	      if (this.source) {
 	        this.source.stop(when);
 	      }
+	    }
+	  }, {
+	    key: 'setSpeed',
+	    value: function setSpeed(speed) {
+	      this.speed = speed;
 	    }
 	  }]);
 

@@ -7,7 +7,7 @@ import h from 'virtual-dom/h';
 import extractPeaks from 'webaudio-peaks';
 import { FADEIN, FADEOUT } from 'fade-maker';
 
-import { secondsToPixels, secondsToSamples } from './utils/conversions';
+import { secondsToPixels, secondsToSamples, cueFormatters } from './utils/conversions';
 import stateClasses from './track/states';
 
 import CanvasHook from './render/CanvasHook';
@@ -19,6 +19,7 @@ const MAX_CANVAS_WIDTH = 1000;
 
 export default class {
   constructor() {
+    this.format = 'hh:mm:ss';
     this.name = 'Untitled';
     this.customClass = undefined;
     this.waveOutlineColor = undefined;
@@ -704,6 +705,22 @@ export default class {
           },
         }),
       );
+      if (cWidth > 1) {
+        waveformChildren.push(
+          h('div.track-selection', {
+            attributes: {
+              style: `position: absolute; width: ${cWidth}px; bottom: 0; top: 0; left: ${cStartX}px; z-index: 4;`,
+            },
+          },
+        ));
+        waveformChildren.push(
+          h('div.track-selection-hoverable', {
+            attributes: {
+              style: `position: absolute; width: ${cWidth}px; bottom: 0; top: 0; left: ${cStartX}px; z-index: 4;`,
+            } },
+            h('span.tooltip', `${cueFormatters(this.format)(data.timeSelection.start)} - ${cueFormatters(this.format)(data.timeSelection.end)}`),
+          ));
+      }
     }
 
     const waveform = h(

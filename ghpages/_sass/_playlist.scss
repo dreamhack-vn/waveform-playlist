@@ -1,20 +1,25 @@
 a {
-  color:#1d70b8;
+  color: #1d70b8;
   cursor: pointer;
   text-decoration: underline;
 }
+
 a:link {
   color: #1d70b8;
 }
+
 a:visited {
   color: #4c2c92;
 }
+
 a:hover {
   color: #003078;
 }
+
 a:active {
   color: #0b0c0c;
 }
+
 a:focus {
   color: #0b0c0c;
 }
@@ -80,6 +85,41 @@ a:focus {
 
   .selection.segment {
     background: rgba(0, 0, 0, 0.1);
+  }
+
+  .track-selection {
+    position: relative;
+    display: inline-block;
+    border-bottom: 1px dotted black;
+    z-index: 12 !important;
+    background: linear-gradient(168.43deg, #FA709A 0%, #FEE140 100%);
+    opacity: 0.2;
+  }
+
+  .track-selection-hoverable {
+    position: relative;
+    display: inline-block;
+    z-index: 13 !important;
+    background: transparent;
+  }
+
+  .track-selection-hoverable .tooltip {
+    padding: 2px 6px;
+    position: absolute;
+    width: 150px;
+    height: 28px;
+    background: #FFFFFF;
+    color: #0D0D0D;
+    text-align: center;
+    box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
+    z-index: 1;
+    bottom: 0;
+    left: 50%;
+    margin-left: -75px;
+  }
+
+  .track-selection-hoverable:hover .tooltip {
+    opacity: 1;
   }
 
   .channel-wrapper.silent .channel {

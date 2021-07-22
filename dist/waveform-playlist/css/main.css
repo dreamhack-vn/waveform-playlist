@@ -40,6 +40,14 @@ a:focus { color: #0b0c0c; }
 
 .playlist .selection.segment { background: rgba(0, 0, 0, 0.1); }
 
+.playlist .track-selection { position: relative; display: inline-block; border-bottom: 1px dotted black; z-index: 12 !important; background: linear-gradient(168.43deg, #FA709A 0%, #FEE140 100%); opacity: 0.2; }
+
+.playlist .track-selection-hoverable { position: relative; display: inline-block; z-index: 13 !important; background: transparent; }
+
+.playlist .track-selection-hoverable .tooltip { padding: 2px 6px; position: absolute; width: 150px; height: 28px; background: #FFFFFF; color: #0D0D0D; text-align: center; box-shadow: 0 0 4px rgba(0, 0, 0, 0.3); z-index: 1; bottom: 0; left: 50%; margin-left: -75px; }
+
+.playlist .track-selection-hoverable:hover .tooltip { opacity: 1; }
+
 .playlist .channel-wrapper.silent .channel { opacity: 0.3; }
 
 .playlist .controls { background: white; text-align: center; border: 1px solid black; border-radius: 0.2rem; }

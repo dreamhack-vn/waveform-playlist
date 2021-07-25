@@ -535,18 +535,18 @@ export default class {
     });
   }
 
-  startRender() {
+  startRender(type = 'full') {
     if (this.isRendering) {
       return;
     }
-
-    this.offlineAudioContext = new OfflineAudioContext(2, 44100 * this.duration, 44100);
+    const duration = type === 'full' ? this.duration : this.timeSelection.end - this.timeSelection.start;
+    this.offlineAudioContext = new OfflineAudioContext(2, 44100 * duration, 44100);
 
     const currentTime = this.offlineAudioContext.currentTime;
 
     this.tracks.forEach((track) => {
       track.setOfflinePlayout(new Playout(this.offlineAudioContext, track.buffer));
-      track.schedulePlay(currentTime, 0, 0, {
+      track.schedulePlay(currentTime, type === 'full' ? 0 : this.timeSelection.start, type === 'full' ? 0 : this.timeSelection.end, {
         shouldPlay: this.shouldTrackPlay(track),
         masterGain: 1,
         isOffline: true,

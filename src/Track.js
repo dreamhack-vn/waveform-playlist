@@ -1,5 +1,6 @@
 import _assign from 'lodash.assign';
 import _forOwn from 'lodash.forown';
+import audioBufferUtil from 'audio-buffer-utils';
 
 import uuid from 'uuid';
 import h from 'virtual-dom/h';
@@ -14,6 +15,7 @@ import CanvasHook from './render/CanvasHook';
 import FadeCanvasHook from './render/FadeCanvasHook';
 import VolumeSliderHook from './render/VolumeSliderHook';
 import StereoPanSliderHook from './render/StereoPanSliderHook';
+import Playout from './Playout';
 
 const MAX_CANVAS_WIDTH = 1000;
 
@@ -87,6 +89,37 @@ export default class {
       }
     }
   }
+
+  clone(start, end, times, sampleRate, ac) {
+    const trackStart = this.getStartTime();
+    const trackEnd = this.getEndTime();
+
+    if (
+        (trackStart <= start && trackEnd >= start) ||
+        (trackStart <= end && trackEnd >= end)
+    ) {
+      const cueIn = start < trackStart ? trackStart : start;
+      const cueOut = end > trackEnd ? trackEnd : end;
+      const copyStartIndex = secondsToSamples(cueIn - trackStart, sampleRate);
+      const copyEndIndex = secondsToSamples(cueOut - trackStart, sampleRate);
+      const buffer = [];
+      if (cueIn > trackStart) {
+        buffer.push(audioBufferUtil.slice(this.buffer, 0, copyStartIndex - 1));
+      }
+      buffer.push(audioBufferUtil.repeat(
+          audioBufferUtil.slice(this.buffer, copyStartIndex, copyEndIndex), times));
+      if (cueIn < trackEnd) {
+        buffer.push(audioBufferUtil.slice(this.buffer, copyEndIndex + 1));
+      }
+
+      this.buffer = audioBufferUtil.concat(buffer);
+
+      const offset = (cueOut - cueIn) * (times - 1);
+      this.setCues(0, trackEnd - trackStart + offset);
+      this.setPlayout(new Playout(ac, this.buffer));
+    }
+  }
+
 
   setStartTime(start) {
     this.startTime = start;

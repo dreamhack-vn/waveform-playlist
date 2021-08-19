@@ -1016,11 +1016,11 @@ export default class {
     );
   }
 
-  getInfo() {
+  getInfo(includeBuffer) {
     const info = [];
 
     this.tracks.forEach((track) => {
-      info.push(track.getTrackDetails());
+      info.push(track.getTrackDetails(includeBuffer));
     });
 
     return info;

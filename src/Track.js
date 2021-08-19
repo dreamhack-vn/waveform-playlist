@@ -793,7 +793,7 @@ export default class {
     );
   }
 
-  getTrackDetails() {
+  getTrackDetails(includeBuffer) {
     const info = {
       src: this.src,
       start: this.startTime,
@@ -804,6 +804,7 @@ export default class {
       cueout: this.cueOut,
       stereoPan: this.stereoPan,
       gain: this.gain,
+      buffer: includeBuffer ? this.buffer : null
     };
 
     if (this.fadeIn) {

@@ -433,7 +433,8 @@ export default class {
           this.ee.emit('removeTrack', this);
         },
       },
-      [h('i.fas.fa-times')],
+      // [h('i.fas.fa-times')],
+      ['Remove']
     );
 
     const trackName = h(

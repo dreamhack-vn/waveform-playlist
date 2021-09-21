@@ -39,6 +39,9 @@ export default class {
     this.endTime = 0;
     this.stereoPan = 0;
     this.speed = 1;
+    this.bpm = null;
+    this.currentBpm = null;
+    this.currentBpmPrecent = 1;
   }
 
   setEventEmitter(ee) {
@@ -213,6 +216,10 @@ export default class {
     this.speed = speed;
   }
 
+  getSpeed() {
+    return this.speed;
+  }
+
   calculatePeaks(samplesPerPixel, sampleRate) {
     const cueIn = secondsToSamples(this.cueIn, sampleRate);
     const cueOut = secondsToSamples(this.cueOut, sampleRate);
@@ -261,6 +268,30 @@ export default class {
 
   setShouldPlay(bool) {
     this.playout.setShouldPlay(bool);
+  }
+
+  setBpm(bpm) {
+    this.bpm = bpm;
+  }
+
+  getBpm() {
+    return this.bpm;
+  }
+
+  setCurrentBpm(currentBpm) {
+    this.currentBpm = currentBpm;
+  }
+
+  getCurrentBpm() {
+    return this.currentBpm;
+  }
+
+  setCurrentBpmPercent(currentBpmPercent) {
+    this.currentBpmPercent = currentBpmPercent;
+  }
+
+  getCurrentBpmPercent() {
+    return this.currentBpmPercent;
   }
 
   setGainLevel(level) {
@@ -437,9 +468,10 @@ export default class {
       ['Remove']
     );
 
+    const trackTitle = this.name + (this.bpm ? ` - ${Math.round(this.bpm * this.currentBpmPercent)} (${Math.round((this.currentBpm / this.bpm) * 10000) / 100}%)` : '');
     const trackName = h(
       'span',
-      [this.name],
+      [`${trackTitle}`],
     );
 
     const collapseTrack = h(
@@ -805,7 +837,10 @@ export default class {
       cueout: this.cueOut,
       stereoPan: this.stereoPan,
       gain: this.gain,
-      buffer: includeBuffer ? this.buffer : null
+      buffer: includeBuffer ? this.buffer : null,
+      bpm: this.bpm,
+      currentBpm: this.currentBpm,
+      currentBpmPercent: this.currentBpmPercent,
     };
 
     if (this.fadeIn) {

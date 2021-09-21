@@ -257,6 +257,11 @@ export default class {
       this.removeTrack(track);
       this.adjustTrackPlayout();
       this.drawRequest();
+      this.ee.emit('trackRemoved', this.speed);
+    });
+
+    ee.on('recalculateSpeed', (bpm) => {
+      this.recalculateSpeed(bpm);
     });
 
     ee.on('changeTrackView', (track, opts) => {
@@ -354,8 +359,8 @@ export default class {
       }, 200);
     });
 
-    ee.on('speedchange', (speed) => {
-      this.setSpeed(speed);
+    ee.on('speedchange', (speed, bpm) => {
+      this.setSpeed(speed, bpm);
     });
 
     ee.on('loopnumber', (number) => {
@@ -389,6 +394,8 @@ export default class {
         const customClass = info.customClass || undefined;
         const waveOutlineColor = info.waveOutlineColor || undefined;
         const stereoPan = info.stereoPan || 0;
+        const bpm = info.bpm || 100;
+        const currentBpm = info.currentBpm || 100;
 
         // webaudio specific playout for now.
         const playout = new Playout(this.ac, audioBuffer);
@@ -396,6 +403,9 @@ export default class {
         const track = new Track();
         track.src = info.src;
         track.setBuffer(audioBuffer);
+        track.setBpm(bpm);
+        track.setCurrentBpm(currentBpm);
+        track.setCurrentBpmPercent(this.speed);
         track.setName(name);
         track.setEventEmitter(this.ee);
         track.setEnabledStates(states);
@@ -635,17 +645,15 @@ export default class {
   }
 
   removeTrack(track) {
-    if (track.isPlaying()) {
-      track.scheduleStop();
-    }
-
     const trackLists = [this.mutedTracks, this.soloedTracks, this.collapsedTracks, this.tracks];
+    this.pause();
     trackLists.forEach((list) => {
       const index = list.indexOf(track);
       if (index > -1) {
         list.splice(index, 1);
       }
     });
+    this.play();
   }
 
   adjustTrackPlayout() {
@@ -1026,12 +1034,46 @@ export default class {
     return info;
   }
 
-  setSpeed(speed) {
+  getFirstBpm() {
+    return this.tracks[0].bpm;
+  }
+
+  setSpeed(bpm) {
+    const firstTrackBpm = this.getFirstBpm();
+    const speed = bpm ? bpm / firstTrackBpm : 1;
     this.speed = (speed >= 0.5 && speed <= 4) ? speed : 1;
+
+    if (bpm) {
+      this.tracks.forEach((editor) => {
+        editor.scheduleStop();
+        editor.setCurrentBpmPercent(speed);
+        editor.setCurrentBpm(bpm);
+      });
+    }
+
     if (this.isPlaying()) {
       this.restartPlayFrom(this.playbackSeconds);
     }
+    this.drawRequest();
     this.ee.emit('speedchanged', this.speed);
+  }
+
+  recalculateSpeed(bpm) {
+    if (this.tracks && this.tracks.length > 0) {
+      const firstTrackBpm = this.getFirstBpm();
+
+      const speed = bpm / firstTrackBpm;
+
+      this.speed = (speed >= 0.5 && speed <= 4) ? speed : 1;
+
+      this.tracks.forEach((editor) => {
+        editor.scheduleStop();
+        editor.setCurrentBpmPercent(speed);
+        editor.setCurrentBpm(bpm);
+      });
+
+      this.drawRequest();
+    }
   }
 
   setLoop(number) {

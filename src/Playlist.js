@@ -646,14 +646,19 @@ export default class {
 
   removeTrack(track) {
     const trackLists = [this.mutedTracks, this.soloedTracks, this.collapsedTracks, this.tracks];
-    this.pause();
+    const isPlaying = this.isPlaying();
+    if (isPlaying) {
+      this.pause();
+    }
     trackLists.forEach((list) => {
       const index = list.indexOf(track);
       if (index > -1) {
         list.splice(index, 1);
       }
     });
-    this.play();
+    if (isPlaying) {
+      this.play();
+    }
   }
 
   adjustTrackPlayout() {

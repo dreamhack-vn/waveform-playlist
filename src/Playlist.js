@@ -40,6 +40,7 @@ export default class {
     this.durationFormat = 'hh:mm:ss.uuu';
     this.isAutomaticScroll = false;
     this.resetDrawTimer = undefined;
+    this.currentCopyTrack = null;
   }
 
   // TODO extract into a plugin
@@ -323,6 +324,38 @@ export default class {
       const timeSelection = this.getTimeSelection();
 
       track.clone(timeSelection.start, timeSelection.end, times, this.sampleRate, this.ac);
+      track.calculatePeaks(this.samplesPerPixel, this.sampleRate);
+
+      this.setTimeSelection(0, 0);
+      this.adjustDuration();
+      this.drawRequest();
+    });
+
+    ee.on('copy', () => {
+      const track = this.getActiveTrack();
+      const timeSelection = this.getTimeSelection();
+
+      this.currentCopyTrack = track.copy(timeSelection.start, timeSelection.end, this.sampleRate);
+    });
+
+    ee.on('cut', () => {
+      const track = this.getActiveTrack();
+      const timeSelection = this.getTimeSelection();
+
+      this.currentCopyTrack = track.cut(timeSelection.start, timeSelection.end, this.sampleRate, this.ac);
+      track.calculatePeaks(this.samplesPerPixel, this.sampleRate);
+
+      this.setTimeSelection(0, 0);
+      this.adjustDuration();
+      this.drawRequest();
+    });
+
+    ee.on('paste', () => {
+      if (!this.currentCopyTrack) return;
+      const track = this.getActiveTrack();
+      const timeSelection = this.getTimeSelection();
+      track.paste(timeSelection.start, timeSelection.end, this.sampleRate, this.currentCopyTrack, this.ac);
+      this.currentCopyTrack = null;
       track.calculatePeaks(this.samplesPerPixel, this.sampleRate);
 
       this.setTimeSelection(0, 0);

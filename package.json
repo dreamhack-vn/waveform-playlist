@@ -50,6 +50,7 @@
     "css": "styles"
   },
   "dependencies": {
+    "@babel/runtime": "^7.15.4",
     "audio-buffer-utils": "5.1.2",
     "event-emitter": "^0.3.4",
     "fade-curves": "^1.0.2",

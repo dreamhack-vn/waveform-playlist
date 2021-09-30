@@ -20,6 +20,11 @@ export default class {
     }
   }
 
+  applyFadeA(start, duration, volumeFrom, volumeTo) {
+    this.fadeGain.gain.linearRampToValueAtTime(volumeFrom, start);
+    this.fadeGain.gain.linearRampToValueAtTime(volumeTo, start + duration);
+  }
+
   applyFadeIn(start, duration, shape = 'logarithmic') {
     this.applyFade(FADEIN, start, duration, shape);
   }

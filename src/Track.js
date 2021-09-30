@@ -42,6 +42,7 @@ export default class {
     this.bpm = null;
     this.currentBpm = null;
     this.currentBpmPrecent = 1;
+    this.fades = [];
   }
 
   setEventEmitter(ee) {
@@ -220,6 +221,20 @@ export default class {
     this.enabledStates = _assign({}, defaultStatesEnabled, enabledStates);
   }
 
+  addFade(start, end, fromVolume, toVolume) {
+    this.fades.push(this.saveFadeA(start, end, fromVolume, toVolume));
+  }
+
+  clearFades() {
+    if (this.fades) {
+      this.fades.forEach((fade) => {
+        this.removeFade(fade);
+      });
+
+      this.fades.length = 0;
+    }
+  }
+
   setFadeIn(duration, shape = 'logarithmic') {
     if (duration > this.duration) {
       throw new Error('Invalid Fade In');
@@ -266,6 +281,19 @@ export default class {
       shape,
       start,
       end,
+    };
+
+    return id;
+  }
+
+  saveFadeA(start, end, volumeFrom, volumeTo) {
+    const id = uuid.v4();
+
+    this.fades[id] = {
+      start,
+      end,
+      volumeFrom,
+      volumeTo
     };
 
     return id;
@@ -457,19 +485,20 @@ export default class {
           fadeDuration = ((fade.end - fade.start) / this.speed);
         }
 
-        switch (fade.type) {
-          case FADEIN: {
-            playoutSystem.applyFadeIn(fadeStart, fadeDuration, fade.shape);
-            break;
-          }
-          case FADEOUT: {
-            playoutSystem.applyFadeOut(fadeStart, fadeDuration, fade.shape);
-            break;
-          }
-          default: {
-            throw new Error('Invalid fade type saved on track.');
-          }
-        }
+        playoutSystem.applyFadeA(fadeStart, fadeDuration, fade.volumeFrom, fade.volumeTo);
+        // switch (fade.type) {
+        //   case FADEIN: {
+        //     playoutSystem.applyFadeIn(fadeStart, fadeDuration, fade.shape);
+        //     break;
+        //   }
+        //   case FADEOUT: {
+        //     playoutSystem.applyFadeOut(fadeStart, fadeDuration, fade.shape);
+        //     break;
+        //   }
+        //   default: {
+        //     throw new Error('Invalid fade type saved on track.');
+        //   }
+        // }
       }
     });
 
@@ -934,4 +963,22 @@ export default class {
 
     return info;
   }
+
+  buildGainNode(data = []) {
+    if (data) {
+      this.clearFades();
+
+      for (let i = 0; i < data.length - 1; i++) {
+        const item = data[i];
+        const nextItem = data[i + 1];
+        // const gainNode = this.ac.createGain();
+        // gainNode.connect(this.destination);
+        // gainNode.gain.setValueAtTime(item.value / 100, item.time);
+        // gainNode.gain.linearRampToValueAtTime(nextItem.value / 100, nextItem.time);
+
+        this.addFade(item.time, nextItem.time, item.value / 100, nextItem.value / 100);
+      }
+    }
+  }
+
 }

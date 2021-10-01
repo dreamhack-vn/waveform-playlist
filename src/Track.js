@@ -1,5 +1,6 @@
 import _assign from 'lodash.assign';
 import _forOwn from 'lodash.forown';
+import _keys from 'lodash.keys';
 import audioBufferUtil from 'audio-buffer-utils';
 
 import uuid from 'uuid';
@@ -227,9 +228,8 @@ export default class {
 
   clearFades() {
     if (this.fades) {
-      _forOwn(this.fades, (fade) => {
-        console.log(fade);
-        this.removeFade(fade.id);
+      _forOwn(_keys(this.fades), (key) => {
+        this.removeFade(key);
       });
     }
   }
@@ -289,6 +289,7 @@ export default class {
     const id = uuid.v4();
 
     this.fades[id] = {
+      id,
       start,
       end,
       volumeFrom,
@@ -469,7 +470,7 @@ export default class {
     const sourcePromise = playoutSystem.setUpSource();
 
     _forOwn(this.fades, (fade) => {
-      const fadeStart = now + relPos + fade.start - startTime;
+      const fadeStart = now + (((relPos + fade.start) - startTime) / this.speed);
 
       if (fadeStart >= 0) {
         playoutSystem.applyFadeA(fadeStart, fade.end - fade.start, fade.volumeFrom, fade.volumeTo);

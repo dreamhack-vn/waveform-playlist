@@ -222,7 +222,7 @@ export default class {
   }
 
   addFade(start, end, fromVolume, toVolume) {
-    this.fades.push(this.saveFadeA(start, end, fromVolume, toVolume));
+    this.saveFadeA(start, end, fromVolume, toVolume);
   }
 
   clearFades() {
@@ -231,7 +231,7 @@ export default class {
         this.removeFade(fade);
       });
 
-      this.fades.length = 0;
+      this.fades = {};
     }
   }
 
@@ -293,7 +293,7 @@ export default class {
       start,
       end,
       volumeFrom,
-      volumeTo
+      volumeTo,
     };
 
     return id;
@@ -466,40 +466,11 @@ export default class {
     }
 
     start += this.cueIn;
-    const relPos = startTime - this.startTime;
+    const relPos = this.startTime;
     const sourcePromise = playoutSystem.setUpSource();
 
-    // param relPos: cursor position in seconds relative to this track.
-    // can be negative if the cursor is placed before the start of this track etc.
     _forOwn(this.fades, (fade) => {
-      let fadeStart;
-      let fadeDuration;
-
-      // only apply fade if it's ahead of the cursor.
-      if (relPos < fade.end) {
-        if (relPos <= fade.start) {
-          fadeStart = now + ((fade.start - relPos) / this.speed);
-          fadeDuration = ((fade.end - fade.start) / this.speed);
-        } else if (relPos > fade.start && relPos < fade.end) {
-          fadeStart = now - ((relPos - fade.start) / this.speed);
-          fadeDuration = ((fade.end - fade.start) / this.speed);
-        }
-
-        playoutSystem.applyFadeA(fadeStart, fadeDuration, fade.volumeFrom, fade.volumeTo);
-        // switch (fade.type) {
-        //   case FADEIN: {
-        //     playoutSystem.applyFadeIn(fadeStart, fadeDuration, fade.shape);
-        //     break;
-        //   }
-        //   case FADEOUT: {
-        //     playoutSystem.applyFadeOut(fadeStart, fadeDuration, fade.shape);
-        //     break;
-        //   }
-        //   default: {
-        //     throw new Error('Invalid fade type saved on track.');
-        //   }
-        // }
-      }
+      playoutSystem.applyFadeA(now + relPos + fade.start - startTime, fade.end - fade.start, fade.volumeFrom, fade.volumeTo);
     });
 
     playoutSystem.setSpeed(this.speed);
@@ -971,10 +942,6 @@ export default class {
       for (let i = 0; i < data.length - 1; i++) {
         const item = data[i];
         const nextItem = data[i + 1];
-        // const gainNode = this.ac.createGain();
-        // gainNode.connect(this.destination);
-        // gainNode.gain.setValueAtTime(item.value / 100, item.time);
-        // gainNode.gain.linearRampToValueAtTime(nextItem.value / 100, nextItem.time);
 
         this.addFade(item.time, nextItem.time, item.value / 100, nextItem.value / 100);
       }

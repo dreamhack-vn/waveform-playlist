@@ -41,6 +41,7 @@ export default class {
     this.isAutomaticScroll = false;
     this.resetDrawTimer = undefined;
     this.currentCopyTrack = null;
+    this.isCut = false;
   }
 
   // TODO extract into a plugin
@@ -336,6 +337,7 @@ export default class {
       const timeSelection = this.getTimeSelection();
 
       this.currentCopyTrack = track.copy(timeSelection.start, timeSelection.end, this.sampleRate);
+      this.isCut = false;
     });
 
     ee.on('cut', () => {
@@ -343,6 +345,7 @@ export default class {
       const timeSelection = this.getTimeSelection();
 
       this.currentCopyTrack = track.cut(timeSelection.start, timeSelection.end, this.sampleRate, this.ac);
+      this.isCut = true;
       track.calculatePeaks(this.samplesPerPixel, this.sampleRate);
 
       this.setTimeSelection(0, 0);
@@ -355,7 +358,9 @@ export default class {
       const track = this.getActiveTrack();
       const timeSelection = this.getTimeSelection();
       track.paste(timeSelection.start, timeSelection.end, this.sampleRate, this.currentCopyTrack, this.ac);
-      this.currentCopyTrack = null;
+      if (this.isCut) {
+        this.currentCopyTrack = null;
+      }
       track.calculatePeaks(this.samplesPerPixel, this.sampleRate);
 
       this.setTimeSelection(0, 0);

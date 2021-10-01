@@ -227,11 +227,10 @@ export default class {
 
   clearFades() {
     if (this.fades) {
-      this.fades.forEach((fade) => {
-        this.removeFade(fade);
+      _forOwn(this.fades, (fade) => {
+        console.log(fade);
+        this.removeFade(fade.id);
       });
-
-      this.fades = {};
     }
   }
 
@@ -470,7 +469,11 @@ export default class {
     const sourcePromise = playoutSystem.setUpSource();
 
     _forOwn(this.fades, (fade) => {
-      playoutSystem.applyFadeA(now + relPos + fade.start - startTime, fade.end - fade.start, fade.volumeFrom, fade.volumeTo);
+      const fadeStart = now + relPos + fade.start - startTime;
+
+      if (fadeStart >= 0) {
+        playoutSystem.applyFadeA(fadeStart, fade.end - fade.start, fade.volumeFrom, fade.volumeTo);
+      }
     });
 
     playoutSystem.setSpeed(this.speed);

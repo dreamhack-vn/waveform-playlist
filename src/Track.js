@@ -176,24 +176,40 @@ export default class {
     return buffer;
   }
 
-  paste(start, end, sampleRate, buffer, ac) {
+  paste(cueIn, end, sampleRate, buffer, ac) {
     const trackStart = this.getStartTime();
     const trackEnd = this.getEndTime();
-    const cueIn = start < trackStart ? trackStart : start;
     const cueOut = end > trackEnd ? trackEnd : end;
-    const pasteIndex = secondsToSamples(cueOut - trackStart, sampleRate);
+    const pasteIndex = secondsToSamples(cueOut < trackStart ? 0 : cueOut - trackStart, sampleRate);
     const newBuffer = [];
-
-    if (cueIn > trackStart) {
-      newBuffer.push(audioBufferUtil.slice(this.buffer, 0, pasteIndex - 1));
+    const cueInOffset = trackStart - cueIn - buffer.duration;
+    if (cueOut > trackStart) {
+      newBuffer.push(audioBufferUtil.slice(this.buffer, 0, pasteIndex));
     }
     newBuffer.push(buffer);
-    if (cueIn < trackEnd) {
-      newBuffer.push(audioBufferUtil.slice(this.buffer, pasteIndex + 1));
+    if (cueOut < trackStart && cueInOffset > 0) {
+      newBuffer.push(audioBufferUtil.create(
+        secondsToSamples(cueInOffset, sampleRate)));
+    }
+    if (cueOut < trackEnd) {
+      newBuffer.push(audioBufferUtil.slice(this.buffer, pasteIndex));
     }
 
     this.buffer = audioBufferUtil.concat(newBuffer);
-    this.setCues(0, trackEnd - trackStart + buffer.duration);
+
+    this.startTime = cueOut < trackStart ? cueIn : trackStart;
+
+    if (cueIn >= trackStart) {
+      this.endTime = trackEnd + buffer.duration;
+    } else if (cueInOffset < 0) {
+      this.endTime = trackEnd - cueInOffset;
+    } else {
+      this.endTime = trackEnd;
+    }
+
+    this.cueIn = 0;
+    this.cueOut = this.endTime;
+    this.duration = this.cueOut - this.cueIn;
     this.setPlayout(new Playout(ac, this.buffer));
   }
 
@@ -540,7 +556,7 @@ export default class {
         },
       },
       // [h('i.fas.fa-times')],
-      ['Remove']
+      ['Remove'],
     );
 
     const trackTitle = this.name + (this.bpm ? ` - ${Math.round(this.bpm * this.currentBpmPercent)} (${Math.round((this.currentBpm / this.bpm) * 10000) / 100}%)` : '');

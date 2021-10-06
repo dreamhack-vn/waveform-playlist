@@ -334,6 +334,7 @@ export default class {
 
     ee.on('copy', () => {
       const track = this.getActiveTrack();
+      if (!track) return;
       const timeSelection = this.getTimeSelection();
 
       this.currentCopyTrack = track.copy(timeSelection.start, timeSelection.end, this.sampleRate);
@@ -342,6 +343,7 @@ export default class {
 
     ee.on('cut', () => {
       const track = this.getActiveTrack();
+      if (!track) return;
       const timeSelection = this.getTimeSelection();
 
       this.currentCopyTrack = track.cut(timeSelection.start, timeSelection.end, this.sampleRate, this.ac);
@@ -356,6 +358,7 @@ export default class {
     ee.on('paste', () => {
       if (!this.currentCopyTrack) return;
       const track = this.getActiveTrack();
+      if (!track) return;
       const timeSelection = this.getTimeSelection();
       track.paste(timeSelection.start, timeSelection.end, this.sampleRate, this.currentCopyTrack, this.ac);
       if (this.isCut) {
@@ -363,7 +366,6 @@ export default class {
       }
       track.calculatePeaks(this.samplesPerPixel, this.sampleRate);
 
-      this.setTimeSelection(0, 0);
       this.adjustDuration();
       this.drawRequest();
     });

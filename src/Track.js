@@ -176,15 +176,23 @@ export default class {
     return buffer;
   }
 
-  paste(cueIn, end, sampleRate, buffer, ac) {
+  paste(cueIn, cueOut, sampleRate, buffer, ac) {
     const trackStart = this.getStartTime();
     const trackEnd = this.getEndTime();
-    const cueOut = end > trackEnd ? trackEnd : end;
     const pasteIndex = secondsToSamples(cueOut < trackStart ? 0 : cueOut - trackStart, sampleRate);
     const newBuffer = [];
     const cueInOffset = trackStart - cueIn - buffer.duration;
-    if (cueOut > trackStart) {
+    const cueOutOffset = cueOut - trackEnd;
+    if (cueOut > trackStart && cueOut < trackEnd) {
       newBuffer.push(audioBufferUtil.slice(this.buffer, 0, pasteIndex));
+    }
+
+    if (cueOut > trackEnd) {
+      newBuffer.push(this.buffer);
+      if (cueOutOffset > 0) {
+        newBuffer.push(audioBufferUtil.create(
+          secondsToSamples(cueOutOffset, sampleRate)));
+      }
     }
     newBuffer.push(buffer);
     if (cueOut < trackStart && cueInOffset > 0) {
@@ -198,11 +206,12 @@ export default class {
     this.buffer = audioBufferUtil.concat(newBuffer);
 
     this.startTime = cueOut < trackStart ? cueIn : trackStart;
-
-    if (cueIn >= trackStart) {
+    if (cueIn >= trackStart && cueOutOffset < 0) {
       this.endTime = trackEnd + buffer.duration;
-    } else if (cueInOffset < 0) {
+    } else if (cueInOffset < 0 && cueIn < trackStart) {
       this.endTime = trackEnd - cueInOffset;
+    } else if (cueOut > trackEnd) {
+      this.endTime = cueOut + buffer.duration;
     } else {
       this.endTime = trackEnd;
     }

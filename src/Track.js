@@ -9,7 +9,7 @@ import h from 'virtual-dom/h';
 import extractPeaks from 'webaudio-peaks';
 import { FADEIN, FADEOUT } from 'fade-maker';
 
-import { secondsToPixels, secondsToSamples, cueFormatters } from './utils/conversions';
+import { secondsToPixels, secondsToSamples, cueFormatters, samplesToSeconds } from './utils/conversions';
 import stateClasses from './track/states';
 
 import CanvasHook from './render/CanvasHook';
@@ -42,8 +42,9 @@ export default class {
     this.speed = 1;
     this.bpm = null;
     this.currentBpm = null;
-    this.currentBpmPrecent = 1;
+    this.currentBpmPercent = 1;
     this.fades = [];
+    this.loopData = [];
   }
 
   setEventEmitter(ee) {
@@ -107,18 +108,29 @@ export default class {
       const cueOut = end > trackEnd ? trackEnd : end;
       const copyStartIndex = secondsToSamples(cueIn - trackStart, sampleRate);
       const copyEndIndex = secondsToSamples(cueOut - trackStart, sampleRate);
+      const duration = (copyEndIndex - copyStartIndex) + 1;
       const buffer = [];
       if (cueIn > trackStart) {
-        buffer.push(audioBufferUtil.slice(this.buffer, 0, copyStartIndex - 1));
+        buffer.push(audioBufferUtil.slice(this.buffer, 0, copyStartIndex));
       }
       buffer.push(audioBufferUtil.repeat(
           audioBufferUtil.slice(this.buffer, copyStartIndex, copyEndIndex), times));
       if (cueIn < trackEnd) {
-        buffer.push(audioBufferUtil.slice(this.buffer, copyEndIndex + 1));
+        buffer.push(audioBufferUtil.slice(this.buffer, copyEndIndex));
+      }
+
+      if (!this.loopData || this.loopData.length > 0) {
+        this.loopData = [];
+      }
+
+      for (let time = 0; time < times - 1; time++) {
+        this.loopData.push({
+          start: copyEndIndex + 1 + (duration * time),
+          end: copyEndIndex + (duration * (time + 1)),
+        });
       }
 
       this.buffer = audioBufferUtil.concat(buffer);
-
       const offset = (cueOut - cueIn) * (times - 1);
       this.setCues(0, trackEnd - trackStart + offset);
       this.setPlayout(new Playout(ac, this.buffer));
@@ -975,6 +987,30 @@ export default class {
         this.addFade(item.time, nextItem.time, item.value / 100, nextItem.value / 100);
       }
     }
+  }
+
+  clearLoop() {
+    if (this.loopData && this.loopData.length > 0) {
+      this.loopData.length = 0;
+    }
+  }
+
+  undoLoop(sampleRate, ac) {
+    if (this.loopData && this.loopData.length > 0) {
+      const trackEnd = this.getEndTime();
+      const lastPiece = this.loopData.pop();
+      let buffer = audioBufferUtil.slice(this.buffer, 0, lastPiece.start);
+      if (lastPiece.end < this.buffer.length) {
+        buffer = audioBufferUtil.concat(buffer,
+            audioBufferUtil.slice(this.buffer, lastPiece.end));
+      }
+      this.buffer = buffer;
+      this.setCues(0, trackEnd - samplesToSeconds(lastPiece.end - lastPiece.start, sampleRate));
+      this.setPlayout(new Playout(ac, this.buffer));
+
+      return true;
+    }
+    return false;
   }
 
 }

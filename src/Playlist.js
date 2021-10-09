@@ -322,12 +322,30 @@ export default class {
 
     ee.on('clone', (times) => {
       const track = this.getActiveTrack();
-      const timeSelection = this.getTimeSelection();
 
+      this.tracks.forEach((track) => {
+        track.clearLoop();
+      });
+
+      const timeSelection = this.getTimeSelection();
       track.clone(timeSelection.start, timeSelection.end, times, this.sampleRate, this.ac);
       track.calculatePeaks(this.samplesPerPixel, this.sampleRate);
 
       this.setTimeSelection(0, 0);
+      this.adjustDuration();
+      this.drawRequest();
+    });
+
+
+    ee.on('undoLoop', () => {
+      this.tracks.forEach((track) => {
+        const isRecalculate = track.undoLoop(this.sampleRate, this.ac);
+        if (isRecalculate) {
+          track.calculatePeaks(this.samplesPerPixel, this.sampleRate);
+        }
+      });
+
+      this.setTimeSelection(0);
       this.adjustDuration();
       this.drawRequest();
     });

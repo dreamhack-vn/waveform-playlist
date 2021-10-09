@@ -338,10 +338,11 @@ export default class {
 
 
     ee.on('undoLoop', () => {
-      this.tracks.forEach((track) => {
+      this.tracks.forEach((track, index) => {
         const isRecalculate = track.undoLoop(this.sampleRate, this.ac);
         if (isRecalculate) {
           track.calculatePeaks(this.samplesPerPixel, this.sampleRate);
+          this.ee.emit('undoloop_done', index);
         }
       });
 

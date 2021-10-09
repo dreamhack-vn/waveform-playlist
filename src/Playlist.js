@@ -322,7 +322,7 @@ export default class {
 
     ee.on('clone', (times) => {
       const track = this.getActiveTrack();
-
+      if (!track) return;
       this.tracks.forEach((track) => {
         track.clearLoop();
       });
